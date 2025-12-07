@@ -40,6 +40,20 @@ app.get('/api/getpotholes', (req, res) => {
     });
 });
 
+// --- Route: Clear All Data (Reset Button) ---
+app.delete('/api/clear', (req, res) => {
+    const sql = 'TRUNCATE TABLE potholes'; // Wipes the table & resets ID to 1
+    db.query(sql, (err, result) => {
+        if (err) {
+            console.error(err);
+            res.status(500).send('Database Error');
+        } else {
+            console.log('♻️ Database Cleared!');
+            res.status(200).send('Cleared');
+        }
+    });
+});
+
 // Start the Server
 app.listen(port, '0.0.0.0', () => {
     console.log(`🚀 Server running at http://localhost:${port}`);

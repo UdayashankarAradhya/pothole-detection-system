@@ -34,6 +34,22 @@
 <body>
 
     <header>
+        <button onclick="clearMap()" style="
+        position: absolute; 
+        top: 80px; 
+        right: 20px; 
+        z-index: 2000; 
+        padding: 10px 20px; 
+        background: white; 
+        color: red; 
+        border: 2px solid red; 
+        font-weight: bold; 
+        cursor: pointer; 
+        border-radius: 5px;
+        box-shadow: 0 2px 5px rgba(0,0,0,0.2);
+    ">
+        🗑️ RESET MAP
+    </button>
         <h1>🚧 Live Pothole Detection System</h1>
     </header>
 
@@ -59,6 +75,43 @@
         let markers = [];
 
         // 3. Function to Fetch Data
+        // --- Define Custom Danger Icon ---
+        const dangerIcon = L.divIcon({
+            className: 'custom-danger-icon',
+            html: `
+                <div style="
+                    background-color: #ff0000; 
+                    width: 35px; 
+                    height: 35px; 
+                    border-radius: 50%; 
+                    border: 3px solid white; 
+                    display: flex; 
+                    align-items: center; 
+                    justify-content: center; 
+                    box-shadow: 0 3px 10px rgba(0,0,0,0.6); 
+                    font-size: 20px;
+                    animation: pulse 2s infinite;
+                ">
+                    💀
+                </div>`,
+            iconSize: [35, 35],
+            iconAnchor: [17, 17], // Center the icon
+            popupAnchor: [0, -20] // Popup appears above it
+        });
+
+        // --- Add CSS Animation for "Pulsing" Effect ---
+        const styleSheet = document.createElement("style");
+        styleSheet.innerText = `
+            @keyframes pulse {
+                0% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0.7); }
+                70% { box-shadow: 0 0 0 10px rgba(255, 0, 0, 0); }
+                100% { box-shadow: 0 0 0 0 rgba(255, 0, 0, 0); }
+            }
+        `;
+        document.head.appendChild(styleSheet);
+
+
+        // --- 3. Function to Fetch Data ---
         async function fetchPotholes() {
             try {
                 const response = await fetch('/api/getpotholes');
@@ -75,13 +128,18 @@
                 potholes.forEach(p => {
                     // Create custom popup content
                     const popupContent = `
-                        <b>⚠️ POTHOLE DETECTED</b><br>
-                        <b>Impact:</b> ${p.z_accel} G<br>
-                        <b>Depth:</b> ${p.distance_cm} cm<br>
-                        <small>${new Date(p.timestamp).toLocaleTimeString()}</small>
+                        <div style="text-align:center">
+                            <h3 style="color:red; margin:0;">💀 DANGER!</h3>
+                            <b>Severe Pothole Detected</b><br>
+                            <hr style="margin:5px 0;">
+                            <b>Impact:</b> ${p.z_accel} G<br>
+                            <b>Depth:</b> ${p.distance_cm} cm<br>
+                            <small style="color:gray">${new Date(p.timestamp).toLocaleTimeString()}</small>
+                        </div>
                     `;
 
-                    const marker = L.marker([p.lat, p.lng])
+                    // *** USE THE CUSTOM ICON HERE ***
+                    const marker = L.marker([p.lat, p.lng], { icon: dangerIcon })
                         .addTo(map)
                         .bindPopup(popupContent);
                     
@@ -98,6 +156,26 @@
         // 4. Auto-Refresh every 2 seconds
         fetchPotholes();
         setInterval(fetchPotholes, 2000);
+        // --- Function to Clear Database ---
+        async function clearMap() {
+            // 1. Ask for confirmation so you don't click it by accident
+            if (confirm("⚠️ Are you sure you want to delete ALL pothole data? This cannot be undone.")) {
+                try {
+                    // 2. Send the delete signal to your Node.js server
+                    const response = await fetch('/api/clear', { method: 'DELETE' });
+                    
+                    if (response.ok) {
+                        alert("Map Cleared!");
+                        location.reload(); // Refresh page to show empty map
+                    } else {
+                        alert("Failed to clear map.");
+                    }
+                } catch (error) {
+                    console.error('Error clearing map:', error);
+                    alert("Server Error");
+                }
+            }
+        }
 
     </script>
 </body>
